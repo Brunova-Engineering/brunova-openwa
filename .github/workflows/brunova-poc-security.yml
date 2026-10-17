@@ -8,6 +8,7 @@ on:
       - Dockerfile
       - package.json
       - package-lock.json
+      - src/engine/adapters/wwebjs-lifecycle.ts
       - dashboard/package-lock.json
       - scripts/check-image-vex.mjs
       - scripts/check-image-vex.spec.mjs

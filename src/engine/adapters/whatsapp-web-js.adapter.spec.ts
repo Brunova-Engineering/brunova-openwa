@@ -2229,9 +2229,54 @@ describe('WhatsAppWebJsAdapter ready reconciliation (#251/#273)', () => {
 
     client.emit('disconnected', 'LOGOUT');
 
-    expect(warnSpy).toHaveBeenCalledTimes(1);
-    expect(warnSpy.mock.calls[0][0]).toMatch(/re-scan/i);
-    expect(warnSpy.mock.calls[0][0]).toMatch(/credential/i);
+    expect(warnSpy).toHaveBeenCalledTimes(2);
+    expect(warnSpy.mock.calls[0][1]).toMatchObject({
+      action: 'logout_evidence',
+      localLogoutInitiated: false,
+      upstreamLogoutCallbackObserved: false,
+      postLogoutNavigation: false,
+    });
+    expect(warnSpy.mock.calls[1][0]).toMatch(/re-scan/i);
+    expect(warnSpy.mock.calls[1][0]).toMatch(/credential/i);
+  });
+
+  it('captures safe upstream logout clues before the library deletes the auth profile', () => {
+    const adapter = newAdapter();
+    const logger = (adapter as unknown as { logger: { warn: (m: string, metadata?: Record<string, unknown>) => void } })
+      .logger;
+    const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    const { client } = attachFakeClient(adapter);
+    (client.pupPage as typeof client.pupPage & { url: () => string }).url = () =>
+      'https://web.whatsapp.com/?post_logout=1&logout_reason=0&private_value=NEVER_LOG_THIS';
+    (client as unknown as { lastLoggedOut: boolean }).lastLoggedOut = true;
+    client.emit('change_state', 'CONNECTED');
+
+    client.emit('disconnected', 'LOGOUT');
+
+    expect(warnSpy.mock.calls[0][1]).toMatchObject({
+      action: 'logout_evidence',
+      lastWaState: 'CONNECTED',
+      upstreamLogoutCallbackObserved: true,
+      postLogoutNavigation: true,
+      logoutReasonCode: '0',
+    });
+    expect(JSON.stringify(warnSpy.mock.calls)).not.toContain('NEVER_LOG_THIS');
+  });
+
+  it('records local logout intent once even when the library repeats LOGOUT', () => {
+    const adapter = newAdapter();
+    const logger = (adapter as unknown as { logger: { warn: (m: string, metadata?: Record<string, unknown>) => void } })
+      .logger;
+    const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => undefined);
+    const { client } = attachFakeClient(adapter);
+    (adapter as unknown as { logoutInitiated: boolean }).logoutInitiated = true;
+
+    client.emit('disconnected', 'LOGOUT');
+    client.emit('disconnected', 'LOGOUT');
+
+    const evidence = warnSpy.mock.calls.filter(call => call[1]?.action === 'logout_evidence');
+    expect(evidence).toHaveLength(1);
+    expect(evidence[0][1]).toMatchObject({ localLogoutInitiated: true });
   });
 
   // Guards against over-explaining: an ordinary transient reason must not gain the re-scan advisory.
