@@ -2223,7 +2223,8 @@ describe('WhatsAppWebJsAdapter ready reconciliation (#251/#273)', () => {
   // engine token alone left operators reading it as an ordinary disconnect, so the adapter explains it.
   it('explains a LOGOUT disconnect (credentials deleted, re-scan required)', () => {
     const adapter = newAdapter();
-    const logger = (adapter as unknown as { logger: { warn: (m: string) => void } }).logger;
+    const logger = (adapter as unknown as { logger: { warn: (m: string, metadata?: Record<string, unknown>) => void } })
+      .logger;
     const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => undefined);
     const { client } = attachFakeClient(adapter);
 
