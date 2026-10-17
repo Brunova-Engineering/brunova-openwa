@@ -95,7 +95,9 @@ jobs:
         id: image
         env:
           REPO: ${{ github.repository }}
-        run: echo "ref=ghcr.io/${REPO,,}:poc-security-v0.23.3-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "repository=ghcr.io/${REPO,,}" >> "$GITHUB_OUTPUT"
+          echo "ref=ghcr.io/${REPO,,}:poc-security-v0.23.3-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
       - name: Build and publish with provenance and SBOM
         id: build
@@ -116,7 +118,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: image
-          image-ref: ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}
+          image-ref: ${{ steps.image.outputs.repository }}@${{ steps.build.outputs.digest }}
           format: json
           output: trivy-published.json
           vuln-type: os,library
@@ -136,7 +138,7 @@ jobs:
 
       - name: Verify the published digest drops privileges
         env:
-          OPENWA_SMOKE_IMAGE: ghcr.io/${{ github.repository }}@${{ steps.build.outputs.digest }}
+          OPENWA_SMOKE_IMAGE: ${{ steps.image.outputs.repository }}@${{ steps.build.outputs.digest }}
         run: ./scripts/smoke-test-non-root.sh
 
       - name: Report immutable digest
