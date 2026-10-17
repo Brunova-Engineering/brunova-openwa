@@ -58,6 +58,7 @@ jobs:
 
       - name: Bind reviewed VEX assertions to this build digest
         run: |
+          jq -r '.Results[] | .Target as $target | .Vulnerabilities[]? | select((.Severity == "CRITICAL" or .Severity == "HIGH") and ((.FixedVersion // "") != "")) | [$target, .PkgName, .InstalledVersion, .FixedVersion, .VulnerabilityID] | @tsv' trivy-ci.json | sort -u
           image_id="$(docker image inspect brunova/openwa:poc-security-ci --format '{{.Id}}')"
           jq --arg product "pkg:oci/brunova/openwa@$image_id" \
             '(.statements[].products[]["@id"]) = $product' \
