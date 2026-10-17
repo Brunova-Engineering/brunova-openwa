@@ -78,7 +78,9 @@ if [ "${OPENWA_DEPLOY_MODE:-local}" = production ]; then
   # A fresh production install must not revive persisted sessions before the operator has
   # completed the first-deploy checks. During an update, however, the existing container proves
   # this is not the first deploy and AUTO_START_SESSIONS may retain its production value.
-  existing_container="$(compose ps -q openwa)"
+  # Include a stopped container: preflight may deliberately stop it to free memory
+  # before updating on a small VPS.
+  existing_container="$(compose ps -a -q openwa)"
   if [ -z "$existing_container" ]; then
     [ "$(env_value AUTO_START_SESSIONS)" = false ] || die 'AUTO_START_SESSIONS must be false for first production deploy'
   fi
