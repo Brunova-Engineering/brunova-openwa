@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- An unexpected whatsapp-web.js `LOGOUT` now records safe pre-teardown evidence: local logout intent,
+  upstream callback observation, previous WhatsApp state, logout navigation, and any numeric reason code.
+  The library does not provide a definitive server-side revocation cause.
+
 ## [0.23.3] - 2026-08-24
 
 ### Added

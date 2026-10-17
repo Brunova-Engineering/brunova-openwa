@@ -12,7 +12,7 @@
 # The digest pins the multi-arch node:22-trixie-slim index, so every build starts from the same immutable
 # base; dependabot's docker ecosystem proposes the new digest when the tag moves. Update tag and
 # digest together.
-FROM --platform=$BUILDPLATFORM docker.io/node:22-trixie-slim@sha256:7b8a0c89c54499bee567618f96578e1a12a800f062fbdbfd1fb6a443fa6f6284 AS builder
+FROM --platform=$BUILDPLATFORM docker.io/node:22-trixie-slim@sha256:154ba2f4d6fec323d28e4f4bb86bba4677f1223391a1979cf521304e03a98dfa AS builder
 
 WORKDIR /app
 
@@ -56,7 +56,7 @@ RUN npm run build && npm run dashboard:ci -- --include=dev && npm run dashboard:
 
 # ===== Stage 2: Production =====
 # Same digest-pinned node:22-trixie-slim base as the builder stage.
-FROM docker.io/node:22-trixie-slim@sha256:7b8a0c89c54499bee567618f96578e1a12a800f062fbdbfd1fb6a443fa6f6284 AS production
+FROM docker.io/node:22-trixie-slim@sha256:154ba2f4d6fec323d28e4f4bb86bba4677f1223391a1979cf521304e03a98dfa AS production
 
 # Run the app with production defaults from the first boot: an unset NODE_ENV selects the
 # development branch of the CORS/Swagger/DTO-error-detail/default-secret hardening (main.ts
@@ -114,6 +114,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
     dumb-init \
     gosu \
     patch \
+    unzip \
     curl \
     procps \
     sqlite3 \
@@ -184,7 +185,7 @@ COPY package*.json ./
 # scripts/postinstall.js rides along so a bare local `npm ci` keeps working, but the
 # --ignore-scripts install below skips the hook here: the explicit fatal run right
 # after is the sole (and stricter) applier for the image.
-COPY scripts/postinstall.js scripts/patch-wwebjs-201832.js scripts/wwebjs-201832.patch scripts/patch-wwebjs-newsletter-preview.js scripts/patch-wwebjs-status.js scripts/patch-wwebjs-ready-sync.js scripts/patch-wwebjs-expose-race.js scripts/patch-wwebjs-participant-arity.js scripts/patch-wwebjs-block.js scripts/patch-baileys-appstate.js scripts/patch-baileys-newsletter-create.js ./scripts/
+COPY scripts/postinstall.js scripts/patch-wwebjs-201832.js scripts/wwebjs-201832.patch scripts/patch-wwebjs-puppeteer-esm.js scripts/patch-wwebjs-newsletter-preview.js scripts/patch-wwebjs-status.js scripts/patch-wwebjs-ready-sync.js scripts/patch-wwebjs-expose-race.js scripts/patch-wwebjs-participant-arity.js scripts/patch-wwebjs-block.js scripts/patch-baileys-appstate.js scripts/patch-baileys-newsletter-create.js ./scripts/
 
 # Install production dependencies only, then apply the backports. The status patcher runs after
 # the two patchers it depends on: its transforms were written against the tree they leave behind.
@@ -202,6 +203,7 @@ COPY scripts/postinstall.js scripts/patch-wwebjs-201832.js scripts/wwebjs-201832
 # a node-version check that the engines field enforces anyway.
 RUN npm ci --omit=dev --ignore-scripts \
     && node scripts/patch-wwebjs-201832.js \
+    && node scripts/patch-wwebjs-puppeteer-esm.js \
     && node scripts/patch-wwebjs-newsletter-preview.js \
     && node scripts/patch-wwebjs-status.js \
     && node scripts/patch-wwebjs-ready-sync.js \
@@ -241,7 +243,7 @@ RUN if [ "$TARGETARCH" = arm64 ]; then \
 # dependency trees; the application entrypoint is `node dist/main` and the Brunova runbooks use
 # direct scripts rather than npm inside the container.
 RUN if [ "$OPENWA_MINIMAL_RUNTIME" = true ]; then \
-        apt-get purge -y patch \
+        apt-get purge -y patch unzip \
         && rm -rf /usr/local/lib/node_modules/npm /opt/yarn-v* \
         && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/yarn /usr/local/bin/yarnpkg; \
     fi

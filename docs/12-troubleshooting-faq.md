@@ -469,6 +469,16 @@ is nothing to SIGKILL). A browser left wedged by an earlier teardown is reaped a
 next `start()` (an orphan sweep keyed on the session's browser marker runs at every engine launch),
 so the stop → start sequence alone is sufficient once the engine is gone.
 
+### Diagnosing an unexpected WhatsApp logout
+
+For any unexpected `LOGOUT`, inspect the `logout_evidence` log entry immediately before credential
+removal. It records whether OpenWA initiated logout, whether whatsapp-web.js observed its page-side
+logout callback, the last WhatsApp state, and whether the navigation carried `post_logout=1` and a
+numeric `logout_reason` code. The full page URL is never logged. These fields distinguish a local
+logout request from a logout observed in WhatsApp Web, but the library does not expose the server's
+reason for revoking a linked device; treat the numeric code as raw evidence, not a documented cause.
+Existing incidents that predate this log cannot be reconstructed from these fields.
+
 ### Issue: Freshly paired session logs out at the first five-minute reload
 
 > **Engine:** This issue applies to the `whatsapp-web.js` engine only.

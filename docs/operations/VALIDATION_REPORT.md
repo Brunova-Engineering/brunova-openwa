@@ -39,12 +39,12 @@ Functional results:
 
 Observed resources:
 
-| Condition | Memory | CPU samples | PIDs | Data volume |
-| --- | ---: | ---: | ---: | ---: |
-| Healthy, before session | 135.1–135.8 MiB | 0–2.18% | 12 | 337 KiB |
-| Unlinked session at `qr_ready` | 559–689.7 MiB | 1.88–40.94% | 152 | about 25.4 MiB |
-| Final, stopped session/profile retained | 143.1 MiB | 0% one-shot | 12 | 27.59 MiB |
-| Linked session, 5-minute active-idle sample | 487–913.1 MiB | 9.09–100.33% | 155–163 | about 153.4 MiB |
+| Condition                                   |          Memory |  CPU samples |    PIDs |     Data volume |
+| ------------------------------------------- | --------------: | -----------: | ------: | --------------: |
+| Healthy, before session                     | 135.1–135.8 MiB |      0–2.18% |      12 |         337 KiB |
+| Unlinked session at `qr_ready`              |   559–689.7 MiB |  1.88–40.94% |     152 |  about 25.4 MiB |
+| Final, stopped session/profile retained     |       143.1 MiB |  0% one-shot |      12 |       27.59 MiB |
+| Linked session, 5-minute active-idle sample |   487–913.1 MiB | 9.09–100.33% | 155–163 | about 153.4 MiB |
 
 The image occupies 533,999,103 bytes. Chromium spawned 10 OS processes; `/dev/shm` remained unused
 because the upstream/default launch arguments include `--disable-dev-shm-usage`. Initial healthy

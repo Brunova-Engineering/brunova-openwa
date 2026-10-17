@@ -144,6 +144,7 @@ export class WwebjsLifecycle {
    *  the same unlink cannot start a second one (#1072). Never reset — an adapter is single-use, and the
    *  profile is gone after the first removal either way. */
   private credentialTeardownStarted = false;
+  private logoutEvidenceReported = false;
   /** Set once the adapter ACTIVELY transitions to DISCONNECTED (engine disconnect, puppeteer death,
    *  stuck-auth recovery, teardown). Same single-use contract as `tearingDown`, but it latches earlier:
    *  on LOGOUT whatsapp-web.js keeps the browser and re-runs inject(), while the lifecycle only replaces
@@ -156,6 +157,7 @@ export class WwebjsLifecycle {
   // exact jest timer counts, and a timer would also outlive the single-use adapter.
   private lastMainFrameNavigationAt = 0;
   private navigationEpisodeStartedAt = 0;
+  private lastWaState: string | null = null;
 
   constructor(private readonly host: WwebjsLifecycleHost) {}
 
@@ -420,6 +422,13 @@ export class WwebjsLifecycle {
   setupEventHandlers(): void {
     if (!this.client) return;
 
+    // whatsapp-web.js exposes the WA state transition but reduces both a local logout and a
+    // remote unlink to the same later DISCONNECTED('LOGOUT') event. Retain only the state token;
+    // the page URL, account identifiers and protocol payloads must never enter the log.
+    this.client.on('change_state', (state: string) => {
+      this.lastWaState = /^[A-Z_]{2,40}$/.test(state) ? state : null;
+    });
+
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
     this.client.on('qr', async (qr: string) => {
       // A 'qr' buffered by a wedged page can flush during the awaited client.destroy(), after
@@ -526,6 +535,34 @@ export class WwebjsLifecycle {
       // `lastLoggedOut` flag only after three awaits and never checks for the main frame, so one unlink
       // can raise this event more than once (#1072). Sitting above the duplicate-event latch is what
       // makes that reachable, so the guard has to be its own one-shot rather than that latch.
+      if (reason === 'LOGOUT' && !this.logoutEvidenceReported) {
+        this.logoutEvidenceReported = true;
+        const client = this.client;
+        let postLogoutNavigation = false;
+        let logoutReasonCode: string | null = null;
+        try {
+          // Retain only the navigation marker and a short numeric code. Never log the full URL.
+          const pageUrl = client?.pupPage?.url?.();
+          if (pageUrl) {
+            const url = new URL(pageUrl);
+            postLogoutNavigation = url.searchParams.get('post_logout') === '1';
+            const rawCode = url.searchParams.get('logout_reason');
+            if (rawCode && /^\d{1,6}$/.test(rawCode)) logoutReasonCode = rawCode;
+          }
+        } catch {
+          // The frame may already be detached when the library emits the disconnect.
+        }
+        this.host.logger.warn('WhatsApp logout evidence captured before credential removal', {
+          sessionId: this.host.config.sessionId,
+          action: 'logout_evidence',
+          localLogoutInitiated: this.logoutInitiated,
+          upstreamLogoutCallbackObserved: client !== null && Reflect.get(client, 'lastLoggedOut') === true,
+          postLogoutNavigation,
+          logoutReasonCode,
+          lastWaState: this.lastWaState,
+          engineStatusBeforeDisconnect: this.status,
+        });
+      }
       if (reason === 'LOGOUT' && !this.logoutInitiated && !this.credentialTeardownStarted) {
         this.credentialTeardownStarted = true;
         // Idempotent stand-in for the library's own rm, which we cannot get a handle on:
