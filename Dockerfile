@@ -114,6 +114,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
     dumb-init \
     gosu \
     patch \
+    unzip \
     curl \
     procps \
     sqlite3 \
@@ -242,7 +243,7 @@ RUN if [ "$TARGETARCH" = arm64 ]; then \
 # dependency trees; the application entrypoint is `node dist/main` and the Brunova runbooks use
 # direct scripts rather than npm inside the container.
 RUN if [ "$OPENWA_MINIMAL_RUNTIME" = true ]; then \
-        apt-get purge -y patch \
+        apt-get purge -y patch unzip \
         && rm -rf /usr/local/lib/node_modules/npm /opt/yarn-v* \
         && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/yarn /usr/local/bin/yarnpkg; \
     fi
