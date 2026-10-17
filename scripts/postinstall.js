@@ -1,7 +1,7 @@
 /**
  * Post-install hook (npm `postinstall`).
  *
- * Ten conditional steps, each skipped when its target is absent so the hook is a no-op where the
+ * Eleven conditional steps, each skipped when its target is absent so the hook is a no-op where the
  * piece is missing (the Docker builder stage copies package*.json long before any source):
  *
  *   1. `npm ci` inside dashboard/ when dashboard/ exists — the dashboard carries its own lockfile and
@@ -15,22 +15,24 @@
  *      itself decides fatality: under --best-effort it warns and exits 0 for a pristine-but-
  *      unpatched tree (no `patch` binary, Baileys-only user), but exits 1 for a HALF-patched
  *      tree — which must never be waved through. So a non-zero status here is propagated as-is.
- *   3. `node scripts/patch-wwebjs-newsletter-preview.js --best-effort` when present. The production
+ *   3. `node scripts/patch-wwebjs-puppeteer-esm.js --best-effort` when present. Puppeteer 25 is
+ *      ESM, so whatsapp-web.js loads it asynchronously from its already-async initialize method.
+ *   4. `node scripts/patch-wwebjs-newsletter-preview.js --best-effort` when present. The production
  *      Docker stage runs it again without best-effort, making dependency drift a build failure.
- *   4. `node scripts/patch-wwebjs-status.js --best-effort` when present — the status posting
+ *   5. `node scripts/patch-wwebjs-status.js --best-effort` when present — the status posting
  *      repairs, gated the same way as step 3.
- *   5. `node scripts/patch-wwebjs-ready-sync.js --best-effort` when present — the readiness
+ *   6. `node scripts/patch-wwebjs-ready-sync.js --best-effort` when present — the readiness
  *      marker + hasSynced level-check, gated the same way.
- *   6. `node scripts/patch-wwebjs-expose-race.js --best-effort` when present — tolerates the one
+ *   7. `node scripts/patch-wwebjs-expose-race.js --best-effort` when present — tolerates the one
  *      benign Puppeteer error produced when concurrent post-QR injects register the same bridge.
- *   7. `node scripts/patch-wwebjs-participant-arity.js --best-effort` when present — makes the group
+ *   8. `node scripts/patch-wwebjs-participant-arity.js --best-effort` when present — makes the group
  *      participant writes report which requested ids resolved to members, gated the same way.
- *   8. `node scripts/patch-wwebjs-block.js --best-effort` when present, restoring block and
+ *   9. `node scripts/patch-wwebjs-block.js --best-effort` when present, restoring block and
  *      unblock after WhatsApp Web removed the contact resolver they used.
- *   9. `node scripts/patch-baileys-appstate.js --best-effort` when present, the app-state resync
+ *  10. `node scripts/patch-baileys-appstate.js --best-effort` when present, the app-state resync
  *      bound, gated the same way.
- *  10. `node scripts/patch-baileys-newsletter-create.js --best-effort` when present, the
- *      newsletter-create parse fix. Steps 9-10 are the Baileys patches, so a Baileys-only install
+ *  11. `node scripts/patch-baileys-newsletter-create.js --best-effort` when present, the
+ *      newsletter-create parse fix. Steps 10-11 are the Baileys patches, so a Baileys-only install
  *      runs those and skips the whatsapp-web.js repairs in steps 2-8.
  *
  * Structured like scripts/patch-wwebjs-201832.js: pure planning + injectable spawn, so the spec
@@ -81,6 +83,15 @@ function planSteps(root, env = process.env) {
       name: 'whatsapp-web.js backport (scripts/patch-wwebjs-201832.js --best-effort)',
       command: process.execPath,
       args: [patcher, '--best-effort'],
+      options: { stdio: 'inherit', cwd: root, env: cleanEnv },
+    });
+  }
+  const puppeteerEsmPatcher = path.join(root, 'scripts', 'patch-wwebjs-puppeteer-esm.js');
+  if (fs.existsSync(puppeteerEsmPatcher)) {
+    steps.push({
+      name: 'whatsapp-web.js Puppeteer ESM loader (scripts/patch-wwebjs-puppeteer-esm.js --best-effort)',
+      command: process.execPath,
+      args: [puppeteerEsmPatcher, '--best-effort'],
       options: { stdio: 'inherit', cwd: root, env: cleanEnv },
     });
   }

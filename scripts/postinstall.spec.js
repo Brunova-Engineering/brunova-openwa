@@ -21,6 +21,7 @@ const OK = { status: 0, signal: null, error: null };
 function makeRoot({
   dashboard = false,
   patcher = false,
+  puppeteerEsmPatcher = false,
   previewPatcher = false,
   statusPatcher = false,
   readySyncPatcher = false,
@@ -33,6 +34,7 @@ function makeRoot({
   if (dashboard) fs.mkdirSync(path.join(root, 'dashboard'));
   if (
     patcher ||
+    puppeteerEsmPatcher ||
     previewPatcher ||
     statusPatcher ||
     readySyncPatcher ||
@@ -45,6 +47,9 @@ function makeRoot({
   }
   if (patcher) {
     fs.writeFileSync(path.join(root, 'scripts', 'patch-wwebjs-201832.js'), '// stub\n');
+  }
+  if (puppeteerEsmPatcher) {
+    fs.writeFileSync(path.join(root, 'scripts', 'patch-wwebjs-puppeteer-esm.js'), '// stub\n');
   }
   if (previewPatcher) {
     fs.writeFileSync(path.join(root, 'scripts', 'patch-wwebjs-newsletter-preview.js'), '// stub\n');
@@ -155,6 +160,7 @@ test('planSteps: dashboard and all patchers run in stable order', () => {
     makeRoot({
       dashboard: true,
       patcher: true,
+      puppeteerEsmPatcher: true,
       previewPatcher: true,
       statusPatcher: true,
       readySyncPatcher: true,
@@ -166,16 +172,17 @@ test('planSteps: dashboard and all patchers run in stable order', () => {
   );
   // One assertion per patcher on disk: the test is named for ALL of them, so a patcher that is
   // planned but never named here would leave the claim false while the suite stayed green.
-  assert.equal(steps.length, 9);
+  assert.equal(steps.length, 10);
   assert.equal(steps[0].command, 'npm ci');
   assert.match(steps[1].args[0], /patch-wwebjs-201832\.js$/);
-  assert.match(steps[2].args[0], /patch-wwebjs-newsletter-preview\.js$/);
-  assert.match(steps[3].args[0], /patch-wwebjs-status\.js$/);
-  assert.match(steps[4].args[0], /patch-wwebjs-ready-sync\.js$/);
-  assert.match(steps[5].args[0], /patch-wwebjs-expose-race\.js$/);
-  assert.match(steps[6].args[0], /patch-wwebjs-participant-arity\.js$/);
-  assert.match(steps[7].args[0], /patch-baileys-appstate\.js$/);
-  assert.match(steps[8].args[0], /patch-baileys-newsletter-create\.js$/);
+  assert.match(steps[2].args[0], /patch-wwebjs-puppeteer-esm\.js$/);
+  assert.match(steps[3].args[0], /patch-wwebjs-newsletter-preview\.js$/);
+  assert.match(steps[4].args[0], /patch-wwebjs-status\.js$/);
+  assert.match(steps[5].args[0], /patch-wwebjs-ready-sync\.js$/);
+  assert.match(steps[6].args[0], /patch-wwebjs-expose-race\.js$/);
+  assert.match(steps[7].args[0], /patch-wwebjs-participant-arity\.js$/);
+  assert.match(steps[8].args[0], /patch-baileys-appstate\.js$/);
+  assert.match(steps[9].args[0], /patch-baileys-newsletter-create\.js$/);
 });
 
 test('run: nothing to do exits 0 and never spawns', () => {
