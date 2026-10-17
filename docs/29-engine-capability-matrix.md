@@ -812,7 +812,7 @@ OpenWA consumes events by normalizing them into `EngineEventCallbacks`; anything
 | Event                       | OpenWA       |     | Event                  | OpenWA                                                                          |
 | --------------------------- | ------------ | --- | ---------------------- | ------------------------------------------------------------------------------- |
 | `message`                   | ✅           |     | `change_battery`       | ❌                                                                              |
-| `message_create`            | ✅           |     | `change_state`         | ❌                                                                              |
+| `message_create`            | ✅           |     | `change_state`         | ✅                                                                              |
 | `message_ack`               | ✅           |     | `chat_archived`        | ❌ candidate                                                                    |
 | `message_edit`              | ✅           |     | `chat_removed`         | ❌                                                                              |
 | `message_reaction`          | ✅           |     | `contact_changed`      | ❌                                                                              |
