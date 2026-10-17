@@ -32,10 +32,10 @@
 Open [https://wa.brunova.mx/](https://wa.brunova.mx/) and use these local, Git-ignored files from
 the `deploy/` directory when access details are needed:
 
-| Local file | Use |
-| ---------- | --- |
-| `deploy/.openwa-dashboard-credentials` | Dashboard username and password for the browser prompt |
-| `deploy/.env.production` | Production configuration and OpenWA API master key (`API_MASTER_KEY`) |
+| Local file                             | Use                                                                   |
+| -------------------------------------- | --------------------------------------------------------------------- |
+| `deploy/.openwa-dashboard-credentials` | Dashboard username and password for the browser prompt                |
+| `deploy/.env.production`               | Production configuration and OpenWA API master key (`API_MASTER_KEY`) |
 
 Both files contain secrets. Keep them at mode `0600`; never commit, paste, or share their values.
 
